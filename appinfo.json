@@ -1,0 +1,100 @@
+{
+    "appKeys": {
+        "KEY_COMMAND": 5,
+        "KEY_SHEDULE_SENT": 4,
+        "KEY_TRAIN_COUNT": 2,
+        "KEY_TRAIN_NUMBER": 3,
+        "KEY_TRAIN_TIME": 1,
+        "KEY_TRAIN_TITLE": 0
+    },
+    "capabilities": [
+        ""
+    ],
+    "companyName": "murmilad@gmail.com",
+    "longName": "Train Watches",
+    "projectType": "native",
+    "resources": {
+        "media": [
+            {
+                "file": "images/think_load.png",
+                "name": "IMAGE_THINK_LOAD",
+                "type": "png"
+            },
+            {
+                "file": "images/think.png",
+                "name": "IMAGE_THINK",
+                "type": "png"
+            },
+            {
+                "file": "images/train_10.png",
+                "name": "IMAGE_TRAIN_9",
+                "type": "png"
+            },
+            {
+                "file": "images/train_9.png",
+                "name": "IMAGE_TRAIN_8",
+                "type": "png"
+            },
+            {
+                "file": "images/train_8.png",
+                "name": "IMAGE_TRAIN_7",
+                "type": "png"
+            },
+            {
+                "file": "images/train_7.png",
+                "name": "IMAGE_TRAIN_6",
+                "type": "png"
+            },
+            {
+                "file": "images/train_5.png",
+                "name": "IMAGE_TRAIN_5",
+                "type": "png"
+            },
+            {
+                "file": "images/train_4.png",
+                "name": "IMAGE_TRAIN_4",
+                "type": "png"
+            },
+            {
+                "file": "images/train_3.png",
+                "name": "IMAGE_TRAIN_3",
+                "type": "png"
+            },
+            {
+                "file": "images/train_2.png",
+                "name": "IMAGE_TRAIN_2",
+                "type": "png"
+            },
+            {
+                "file": "images/train_1.png",
+                "menuIcon": true,
+                "name": "IMAGE_TRAIN_1",
+                "type": "png"
+            },
+            {
+                "file": "images/train.png",
+                "name": "IMAGE_TRAIN",
+                "type": "png"
+            },
+            {
+                "file": "images/naked_girl__by_sockes-d4tq8xz.png",
+                "name": "IMAGE_GIRL",
+                "type": "png"
+            },
+            {
+                "characterRegex": "[0-9:. ]",
+                "file": "fonts/BAUHS93.TTF",
+                "name": "FONT_BAUHS21",
+                "type": "font"
+            }
+        ]
+    },
+    "sdkVersion": "2",
+    "shortName": "TW",
+    "uuid": "63e94b3f-1ec1-4dbb-9a4a-450a48683824",
+    "versionCode": 1,
+    "versionLabel": "1.0",
+    "watchapp": {
+        "watchface": true
+    }
+}
