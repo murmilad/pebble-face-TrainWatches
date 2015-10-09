@@ -2,6 +2,7 @@
     "appKeys": {
         "KEY_COMMAND": 5,
         "KEY_SHEDULE_SENT": 4,
+        "KEY_TIMEZONE_OFFSET": 6,
         "KEY_TRAIN_COUNT": 2,
         "KEY_TRAIN_NUMBER": 3,
         "KEY_TRAIN_TIME": 1,
@@ -15,6 +16,11 @@
     "projectType": "native",
     "resources": {
         "media": [
+            {
+                "file": "images/app_image.png",
+                "name": "IMAGE_APP",
+                "type": "png"
+            },
             {
                 "file": "images/think_load.png",
                 "name": "IMAGE_THINK_LOAD",

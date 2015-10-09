@@ -34,7 +34,7 @@ static void send_command(char * command) {
 void update_train() {
   
   time_t current_time = time(NULL);
-
+  
   if (s_shedule_received == 1){
     for (uint16_t i = 0; i < s_trains_count; i++){
       if (current_time + 60 * 10 < s_shedule_array[i].time){
@@ -108,7 +108,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     // Which key was received?
     switch(t->key) {
       case KEY_TRAIN_COUNT:
-        APP_LOG(APP_LOG_LEVEL_INFO, "Trains count %d", s_trains_count);
+        APP_LOG(APP_LOG_LEVEL_INFO, "Trains count %d", t->value->uint16);
 
         s_train_index = 0;
         s_shedule_received = 0;
@@ -121,25 +121,25 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         send_command("send_next_train");
         break;
       case KEY_TRAIN_TITLE:
-        APP_LOG(APP_LOG_LEVEL_INFO, "tit %s", train.title);
+        APP_LOG(APP_LOG_LEVEL_INFO, "tit %s", t->value->cstring);
 
         snprintf(train.title, sizeof(train.title), "%s", t->value->cstring);
 
         break;
       case KEY_TRAIN_TIME:
-        APP_LOG(APP_LOG_LEVEL_INFO, "tim %d", (int) train.time);
+        APP_LOG(APP_LOG_LEVEL_INFO, "tim %d", (int) t->value->uint32);
 
         train.time = (time_t) t->value->uint32;
 
         break;
       case KEY_TRAIN_NUMBER:
-        APP_LOG(APP_LOG_LEVEL_INFO, "num %d", (int) train_number);
+        APP_LOG(APP_LOG_LEVEL_INFO, "num %d", (int) t->value->uint16);
 
         train_number = t->value->uint16;
 
         break;
       case KEY_SHEDULE_SENT:
-        APP_LOG(APP_LOG_LEVEL_INFO, "sent %d", (int) s_shedule_received);
+        APP_LOG(APP_LOG_LEVEL_INFO, "sent %d", (int) t->value->uint8);
 
         s_shedule_received = (uint8_t)t->value->uint8;
         update_train();

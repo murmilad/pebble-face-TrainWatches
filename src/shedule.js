@@ -12,6 +12,7 @@ var trains = [];
 
 var sendFeed = function(data) {
   var currentDate = new Date();
+  var timezoneOffset = (new Date()).getTimezoneOffset() * 60;
 
   var j = 0;
   for(var i = 0; i < data.threads.length; i++) {
@@ -19,12 +20,13 @@ var sendFeed = function(data) {
     var departureDate = new Date(data.threads[i].departure);
 
     if (currentDate < departureDate) {
-      var dtpartureDateUTC = departureDate.getTime() / 1000;
+
+      var dtpartureDateUTC = departureDate.getTime() / 1000 - timezoneOffset;
       var title = data.threads[i].thread.short_title;
 
       trains[j] = {
         'KEY_TRAIN_TITLE': title,
-        'KEY_TRAIN_TIME': dtpartureDateUTC + 3 * 60,
+        'KEY_TRAIN_TIME': dtpartureDateUTC,
         'KEY_TRAIN_NUMBER' : j
       };
 
@@ -32,10 +34,9 @@ var sendFeed = function(data) {
     }
   }
 
-  var dictionary = {
+  Pebble.sendAppMessage({
     'KEY_TRAIN_COUNT': trains.length
-  };
-  Pebble.sendAppMessage(dictionary, sentSuccessfully, sentUnsuccessfully);
+  }, sentSuccessfully, sentUnsuccessfully);
   
 };
 
@@ -90,10 +91,9 @@ Pebble.addEventListener('appmessage',
         if (trains.length > 0) {
           Pebble.sendAppMessage(trains.shift(), sentSuccessfully, sentUnsuccessfully);
         } else {
-          var dictionary = {
+          Pebble.sendAppMessage({
             'KEY_SHEDULE_SENT': 1,
-          };
-          Pebble.sendAppMessage(dictionary, sentSuccessfully, sentUnsuccessfully);
+          }, sentSuccessfully, sentUnsuccessfully);
         }
        break;
       
@@ -109,7 +109,8 @@ Pebble.addEventListener('ready',
   function(e) {
     console.log('PebbleKit JS ready!');
 
-    // Get the initial weather
+  // Get the initial weather
     getShedule();
   }
 );
+
