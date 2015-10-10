@@ -1,7 +1,7 @@
 #include <pebble.h>
 #include "train.h"
 
-#define TRAIN_IMAGES_COUNT 11  
+#define TRAIN_IMAGES_COUNT 12  
 
 #define KEY_TRAIN_TITLE 0
 #define KEY_TRAIN_TIME 1
@@ -19,7 +19,7 @@ static Train *s_shedule_array;
 
 static BitmapLayer *s_train_layer;
 static GBitmap *s_train_bitmap[TRAIN_IMAGES_COUNT];
-static uint16_t s_train_index  = 0;
+static int16_t s_train_index  = 0;
 static uint16_t s_trains_count = 0;
 static uint8_t s_shedule_received = 0;
 
@@ -36,6 +36,7 @@ void update_train() {
   time_t current_time = time(NULL);
   
   if (s_shedule_received == 1){
+    s_train_index = -1;
     for (uint16_t i = 0; i < s_trains_count; i++){
       if (current_time + 60 * 10 < s_shedule_array[i].time){
         APP_LOG(APP_LOG_LEVEL_INFO, "Current train is %s", s_shedule_array[i].title);
@@ -58,6 +59,9 @@ void update_train() {
         break;
       }
     }
+    if (s_train_index < 0) {
+        bitmap_layer_set_bitmap(s_train_layer, s_train_bitmap[11]);
+    }
   
     if(current_time % (60 * 60 * 24) == 0) {
       send_command("get_shedule");
@@ -70,6 +74,7 @@ void update_train() {
 void train_load(Window *window) {
     // Create GBitmap, then set to created BitmapLayer
   s_train_bitmap[10] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_THINK_LOAD);
+  s_train_bitmap[11] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_THINK);
   
   s_train_bitmap[9] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_TRAIN);
   s_train_bitmap[8] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_TRAIN_1);
@@ -110,7 +115,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       case KEY_TRAIN_COUNT:
         APP_LOG(APP_LOG_LEVEL_INFO, "Trains count %d", t->value->uint16);
 
-        s_train_index = 0;
+        s_train_index = -1;
         s_shedule_received = 0;
         bitmap_layer_set_bitmap(s_train_layer, s_train_bitmap[10]);
         s_trains_count = t->value->uint16;
