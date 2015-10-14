@@ -1,7 +1,7 @@
 #include <pebble.h>
 #include "train.h"
 
-#define TRAIN_IMAGES_COUNT 12  
+#define TRAIN_IMAGES_COUNT 11  
 
 #define KEY_TRAIN_TITLE 0
 #define KEY_TRAIN_TIME 1
@@ -23,6 +23,7 @@ typedef struct {
 static Train *s_shedule_array;
 
 static BitmapLayer *s_train_layer;
+static BitmapLayer *s_frame_layer;
 static GBitmap *s_train_bitmap[TRAIN_IMAGES_COUNT];
 
 static TextLayer *s_track_layer;
@@ -81,7 +82,7 @@ void update_train() {
       }
     }
     if (s_train_index < 0) {
-        bitmap_layer_set_bitmap(s_train_layer, s_train_bitmap[11]);
+        text_layer_set_text(s_track_layer, "На сегодня поездов больше нет");
     }
   
     if(current_time % (60 * 60 * 24) == 0) {
@@ -95,7 +96,6 @@ void update_train() {
 void train_load(Window *window) {
     // Create GBitmap, then set to created BitmapLayer
   s_train_bitmap[10] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_THINK_LOAD);
-  s_train_bitmap[11] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_THINK);
   
   s_train_bitmap[9] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_TRAIN);
   s_train_bitmap[8] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_TRAIN_1);
@@ -112,7 +112,11 @@ void train_load(Window *window) {
   bitmap_layer_set_bitmap(s_train_layer, s_train_bitmap[10]);
   layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(s_train_layer));
 
-  s_track_layer = text_layer_create(GRect(0, 108, 144, 168));
+  s_frame_layer = bitmap_layer_create(GRect(0, 86, 144, 82));
+  bitmap_layer_set_bitmap(s_frame_layer, gbitmap_create_with_resource(RESOURCE_ID_IMAGE_TRAIN_FRAME));
+  layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(s_frame_layer));
+
+  s_track_layer = text_layer_create(GRect(5, 103, 133, 62));
   text_layer_set_background_color(s_track_layer, GColorBlack);
   text_layer_set_text_color(s_track_layer, GColorClear);
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_track_layer));
@@ -124,6 +128,7 @@ void train_unload(){
     }
 
     bitmap_layer_destroy(s_train_layer);
+    bitmap_layer_destroy(s_frame_layer);
     free(s_shedule_array);
     text_layer_destroy(s_track_layer);
 

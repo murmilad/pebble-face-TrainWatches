@@ -19,6 +19,16 @@
     "resources": {
         "media": [
             {
+                "file": "images/train_frame.png",
+                "name": "IMAGE_TRAIN_FRAME",
+                "type": "png"
+            },
+            {
+                "file": "images/naked_girl_frame.png",
+                "name": "IMAGE_GIRL_FRAME",
+                "type": "png"
+            },
+            {
                 "file": "images/app_image.png",
                 "name": "IMAGE_APP",
                 "type": "png"

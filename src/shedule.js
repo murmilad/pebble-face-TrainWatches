@@ -205,5 +205,6 @@ Pebble.addEventListener('webviewclosed', function(e) {
   localStorage.setItem('home_lat', config_data.lat);
   localStorage.setItem('home_lng', config_data.lng);
   
+  getShedule();
 });
 
