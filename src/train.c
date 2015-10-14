@@ -12,15 +12,27 @@
 #define KEY_TRACK_TITLE 6
 #define KEY_STATION_DISTANCE 7
 #define KEY_TRAIN_NUMBER 8
+#define KEY_STATION_COUNT 9
+#define KEY_STATION_TITLE 10
+#define KEY_STATION_NUMBER 11
+#define KEY_TRAIN_STATION_FROM 12
+#define KEY_TRAIN_STATION_TO 13
 
 typedef struct {
-  char title[150];
+  uint8_t station_from;
+  uint8_t station_to;
   time_t time;
   time_t exit_time;
   uint16_t station_dest;
 } Train;
 
+typedef struct {
+  char title[120];
+  uint8_t number;
+} Station;
+
 static Train *s_shedule_array;
+static Station *s_stations_array;
 
 static BitmapLayer *s_train_layer;
 static BitmapLayer *s_frame_layer;
@@ -48,7 +60,6 @@ void update_train() {
     s_train_index = -1;
     for (uint16_t i = 0; i < s_trains_count; i++){
       if (current_time < s_shedule_array[i].exit_time){
-        APP_LOG(APP_LOG_LEVEL_INFO, "Current train is %s", s_shedule_array[i].title);
         APP_LOG(APP_LOG_LEVEL_INFO, "train time %d", (int) s_shedule_array[i].time);
         APP_LOG(APP_LOG_LEVEL_INFO, "station dest %d", (int) s_shedule_array[i].station_dest);
         APP_LOG(APP_LOG_LEVEL_INFO, "current  time %d", (int) current_time);
@@ -71,8 +82,8 @@ void update_train() {
         struct tm *tick_time = localtime(&s_shedule_array[i].time);
         strftime(time_str, sizeof("00:00"), "%H:%M", tick_time);
 
-        static char title_str[160];
-        snprintf(title_str, sizeof(title_str), "%s : %s", s_shedule_array[i].title, time_str);
+        static char title_str[310];
+        snprintf(title_str, sizeof(title_str), "%s - %s : %s", s_stations_array[s_shedule_array[i].station_from].title, s_stations_array[s_shedule_array[i].station_to].title,  time_str);
 
         APP_LOG(APP_LOG_LEVEL_INFO, " get image %s", title_str);
         
@@ -116,7 +127,7 @@ void train_load(Window *window) {
   bitmap_layer_set_bitmap(s_frame_layer, gbitmap_create_with_resource(RESOURCE_ID_IMAGE_TRAIN_FRAME));
   layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(s_frame_layer));
 
-  s_track_layer = text_layer_create(GRect(5, 103, 133, 62));
+  s_track_layer = text_layer_create(GRect(10, 103, 130, 62));
   text_layer_set_background_color(s_track_layer, GColorBlack);
   text_layer_set_text_color(s_track_layer, GColorClear);
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_track_layer));
@@ -143,12 +154,30 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   Train train;
   bool is_train = false;
   uint8_t train_number = 0;
+  
+  Station station;
+  bool is_station = false;
 
   // For all items
   while(t != NULL) {
     // Which key was received?
      APP_LOG(APP_LOG_LEVEL_INFO, "Key %d",(int) t->key);
     switch(t->key) {
+      case KEY_STATION_COUNT:
+        APP_LOG(APP_LOG_LEVEL_INFO, "Station count %d", t->value->uint8);
+        free(s_stations_array);
+        s_stations_array = (Station*)malloc(t->value->uint8 * sizeof(Station));
+        send_command("send_next_station");
+        break;
+      case KEY_STATION_TITLE:
+        APP_LOG(APP_LOG_LEVEL_INFO, "Station title %s", t->value->cstring);
+        is_station = true;
+        snprintf(station.title, sizeof(station.title), "%s", t->value->cstring);
+        break;
+      case KEY_STATION_NUMBER:
+        APP_LOG(APP_LOG_LEVEL_INFO, "Station number %d", t->value->uint8);
+        station.number = t->value->uint8;
+        break;
       case KEY_TRAIN_COUNT:
         APP_LOG(APP_LOG_LEVEL_INFO, "Trains count %d", t->value->uint16);
 
@@ -162,15 +191,20 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       
         send_command("send_next_train");
         break;
-      case KEY_TRAIN_TITLE:
-        APP_LOG(APP_LOG_LEVEL_INFO, "tit %s", t->value->cstring);
+      case KEY_TRAIN_STATION_FROM:
+        APP_LOG(APP_LOG_LEVEL_INFO, "Trains from %d", t->value->uint8);
+        train.station_from = t->value->uint8;
 
-        is_train = true;
-        snprintf(train.title, sizeof(train.title), "%s", t->value->cstring);
+        break;
+      case KEY_TRAIN_STATION_TO:
+        APP_LOG(APP_LOG_LEVEL_INFO, "Trains to %d", t->value->uint8);
+        train.station_to = t->value->uint8;
 
         break;
       case KEY_TRAIN_TIME:
         APP_LOG(APP_LOG_LEVEL_INFO, "tim %d", (int) t->value->uint32);
+
+        is_train = true;
 
         train.time = (time_t) t->value->uint32;
 
@@ -211,6 +245,10 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   if (is_train) {
     s_shedule_array[train_number] = train;
     send_command("send_next_train");
+  }
+  if (is_station) {
+    s_stations_array[station.number] = station;
+    send_command("send_next_station");
   }
 }
 

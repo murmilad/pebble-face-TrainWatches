@@ -9,7 +9,33 @@ var sentUnsuccessfully = function(e) {
 };
 
 var trains = [];
+var stations = [];
 var timezoneOffset;
+var stationsHome = [];
+var stationsPos  = [];
+
+//This function takes in latitude and longitude of two location and returns the distance between them as the crow flies (in km)
+function calcSearchDistance(lat1, lon1, lat2, lon2) {
+  var R = 6371; // km
+  var dLat = toRad(lat2-lat1);
+  var dLon = toRad(lon2-lon1);
+  lat1 = toRad(lat1);
+  lat2 = toRad(lat2);
+
+  var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2); 
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  var d = R * c;
+  
+  
+  return Math.min(Math.max(Math.floor(d / 10), 1),10);
+}
+
+// Converts numeric degrees to radians
+function toRad(Value) 
+{
+  return Value * Math.PI / 180;
+}
 
 function getDateUTC (dateString){
   var date = new Date(dateString);
@@ -45,6 +71,8 @@ function getSheduleData(stationPos, stationHome){
               'KEY_STATION_DISTANCE': stationPos.KEY_STATION_DISTANCE,
               'KEY_HOME_DISTANCE': stationHome.KEY_STATION_DISTANCE,
               'KEY_TRAIN_NUMBER': 0,
+              'KEY_TRAIN_STATION_FROM' : stationPos.KEY_STATION_NUMBER,
+              'KEY_TRAIN_STATION_TO' : stationHome.KEY_STATION_NUMBER,
             });
           }
         });
@@ -62,11 +90,11 @@ function getSheduleData(stationPos, stationHome){
   
 }
 
-function getColsestStations(lat, lng) {
+function getColsestStations(lat, lng, distance) {
   var xhr = new XMLHttpRequest();
-  var stations = [];
+  var _stations = [];
 
-  xhr.open("GET", "https://api.rasp.yandex.net/v1.0/nearest_stations/?&apikey=e11e0228-1a80-4090-98a9-046137c4fbb0&format=json&lat=" + lat + "&lng=" + lng + "&distance=2&lang=ru&transport_types=train", false);
+  xhr.open("GET", "https://api.rasp.yandex.net/v1.0/nearest_stations/?&apikey=e11e0228-1a80-4090-98a9-046137c4fbb0&format=json&lat=" + lat + "&lng=" + lng + "&distance=" + distance + "&lang=ru&transport_types=train", false);
   xhr.withCredentials=true;
   xhr.onload = function (e) {
 
@@ -79,11 +107,16 @@ function getColsestStations(lat, lng) {
           console.log('Station dest ' + station.distance);
           console.log('Station time ' + Math.round(station.distance / 5 * 60 * 60));
 
-          stations.push({
+          _stations.push({
             'KEY_STATION_TITLE': station.title,
             'KEY_STATION_DISTANCE': Math.round(station.distance * 1000),
             'KEY_STATION_TIME': Math.round(station.distance / 5 * 60 * 60),
             'KEY_STATION_CODE': station.code,
+            'KEY_STATION_NUMBER': stations.length,
+          });
+          stations.push({
+            'KEY_STATION_TITLE': station.title,
+            'KEY_STATION_NUMBER': stations.length,
           });
         });
       } else {
@@ -98,24 +131,33 @@ function getColsestStations(lat, lng) {
 
   xhr.send();
 
-  return stations;
+  return _stations;
 }
 
 function locationSuccess(pos) {
   trains = [];
 
+  
+  var searchDistance = calcSearchDistance(pos.coords.latitude, pos.coords.longitude, localStorage.getItem('home_lat'), localStorage.getItem('home_lng'));
   console.log('Get pos stations');
-
-  var stationsPos  = getColsestStations(pos.coords.latitude, pos.coords.longitude);
-
+  stationsPos  = getColsestStations(pos.coords.latitude, pos.coords.longitude, searchDistance);
   console.log('Get home stations');
+  stationsHome = getColsestStations(localStorage.getItem('home_lat'), localStorage.getItem('home_lng'), searchDistance);
 
-  var stationsHome = getColsestStations(localStorage.getItem('home_lat'), localStorage.getItem('home_lng'));
+  Pebble.sendAppMessage({
+    'KEY_STATION_COUNT': stations.length
+  }, sentSuccessfully, sentUnsuccessfully);
+
+  
+}
+
+function sortSheduleData(){
   stationsPos.forEach(function(stationPos, i, arrPos) {
     stationsHome.forEach(function(stationHome, j, arrHome) {
       getSheduleData(stationPos, stationHome);
     });
   });
+  
   trains.sort(function(a, b) {
     return a.KEY_TRAIN_LINE.localeCompare(b.KEY_TRAIN_LINE) || a.KEY_STATION_DISTANCE - b.KEY_STATION_DISTANCE || a.KEY_HOME_DISTANCE - b.KEY_HOME_DISTANCE;
   });
@@ -173,6 +215,15 @@ Pebble.addEventListener('appmessage',
           Pebble.sendAppMessage({
             'KEY_SHEDULE_SENT': 1,
           }, sentSuccessfully, sentUnsuccessfully);
+        }
+       break;
+
+      case "send_next_station":
+        if (stations.length > 0) {
+          console.log ("send st");
+          Pebble.sendAppMessage(stations.shift(), sentSuccessfully, sentUnsuccessfully);
+        } else {
+          sortSheduleData();
         }
        break;
       
