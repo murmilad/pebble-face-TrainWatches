@@ -1,15 +1,17 @@
 {
     "appKeys": {
         "KEY_COMMAND": 5,
+        "KEY_EXIT_TIME": 3,
         "KEY_SHEDULE_SENT": 4,
-        "KEY_TIMEZONE_OFFSET": 6,
+        "KEY_STATION_DISTANCE": 7,
+        "KEY_TRACK_TITLE": 6,
         "KEY_TRAIN_COUNT": 2,
-        "KEY_TRAIN_NUMBER": 3,
+        "KEY_TRAIN_NUMBER": 8,
         "KEY_TRAIN_TIME": 1,
         "KEY_TRAIN_TITLE": 0
     },
     "capabilities": [
-        ""
+        "configurable"
     ],
     "companyName": "murmilad@gmail.com",
     "longName": "Train Watches",

@@ -9,62 +9,138 @@ var sentUnsuccessfully = function(e) {
 };
 
 var trains = [];
+var timezoneOffset;
 
-var sendFeed = function(data) {
-  var currentDate = new Date();
-  var timezoneOffset = (new Date()).getTimezoneOffset() * 60;
+function getDateUTC (dateString){
+  var date = new Date(dateString);
+  return date.getTime() / 1000 - timezoneOffset;
+}
 
-  var j = 0;
-  for(var i = 0; i < data.threads.length; i++) {
-
-    var departureDate = new Date(data.threads[i].departure);
-
-    if (currentDate < departureDate) {
-
-      var dtpartureDateUTC = departureDate.getTime() / 1000 - timezoneOffset;
-      var title = data.threads[i].thread.short_title;
-
-      trains[j] = {
-        'KEY_TRAIN_TITLE': title,
-        'KEY_TRAIN_TIME': dtpartureDateUTC,
-        'KEY_TRAIN_NUMBER' : j
-      };
-
-      j++;
-    }
-  }
-
-  Pebble.sendAppMessage({
-    'KEY_TRAIN_COUNT': trains.length
-  }, sentSuccessfully, sentUnsuccessfully);
-  
-};
-
-
-function sendSheduleData(){
+function getSheduleData(stationPos, stationHome){
   var date = new Date();
-  console.log('date = ' + date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2));// date.toLocaleDateString()); //date.getUTCYear() + '-'+  date.getUTCMonth() + '-' + date.getUTCDate());
+  var dateUTC = date.getTime() / 1000;
 
   var xhr = new XMLHttpRequest();
 
-  xhr.open("GET", "https://api.rasp.yandex.net/v1.0/search/?apikey=e11e0228-1a80-4090-98a9-046137c4fbb0&format=json&lang=ru&from=s2000001&to=s9601266&date=" + date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2), true);
+  xhr.open("GET", "https://api.rasp.yandex.net/v1.0/search/?apikey=e11e0228-1a80-4090-98a9-046137c4fbb0&format=json&lang=ru&from=" + stationPos.KEY_STATION_CODE + "&to=" + stationHome.KEY_STATION_CODE + "&date=" + date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2), false);
   xhr.withCredentials=true;
   xhr.onload = function (e) {
 
     if (xhr.readyState === 4) {
       if (xhr.status === 200) {
         var sheduleFeed = JSON.parse(decodeURIComponent(xhr.responseText));
-        sendFeed(sheduleFeed);
+        sheduleFeed.threads.forEach(function(train, i, arr) {
+          var exitTime = getDateUTC(train.departure) - stationPos.KEY_STATION_TIME;
+          if (dateUTC < exitTime) {
+            console.log('Train ' + train.thread.short_title);
+            console.log('Train number' + train.thread.number);
+            console.log('Train number' + train.thread.uid);
+
+            trains.push({
+              'KEY_TRAIN_TITLE': train.from.title + " - " + train.to.title,
+              'KEY_TRAIN_TIME': getDateUTC(train.departure),
+              'KEY_TRAIN_LINE': train.thread.number,
+              'KEY_EXIT_TIME' : exitTime,
+              'KEY_TRACK_TITLE' : train.thread.short_title,
+              'KEY_STATION_DISTANCE': stationPos.KEY_STATION_DISTANCE,
+              'KEY_HOME_DISTANCE': stationHome.KEY_STATION_DISTANCE,
+              'KEY_TRAIN_NUMBER': 0,
+            });
+          }
+        });
       } else {
         console.error(xhr.statusText);
       }
     }
   };
+
+  xhr.onerror = function (e) {
+    console.error(xhr.statusText);
+  };
+
   xhr.send();
+  
+}
+
+function getColsestStations(lat, lng) {
+  var xhr = new XMLHttpRequest();
+  var stations = [];
+
+  xhr.open("GET", "https://api.rasp.yandex.net/v1.0/nearest_stations/?&apikey=e11e0228-1a80-4090-98a9-046137c4fbb0&format=json&lat=" + lat + "&lng=" + lng + "&distance=2&lang=ru&transport_types=train", false);
+  xhr.withCredentials=true;
+  xhr.onload = function (e) {
+
+    if (xhr.readyState === 4) {
+      if (xhr.status === 200) {
+        console.log("xhr.status === 200");
+        var configuration = JSON.parse(decodeURIComponent(xhr.responseText));
+        configuration.stations.forEach(function(station, i, arr) {
+          console.log('Station ' + station.title);
+          console.log('Station dest ' + station.distance);
+          console.log('Station time ' + Math.round(station.distance / 5 * 60 * 60));
+
+          stations.push({
+            'KEY_STATION_TITLE': station.title,
+            'KEY_STATION_DISTANCE': Math.round(station.distance * 1000),
+            'KEY_STATION_TIME': Math.round(station.distance / 5 * 60 * 60),
+            'KEY_STATION_CODE': station.code,
+          });
+        });
+      } else {
+        console.error(xhr.statusText);
+      }
+    }
+  };
+
+  xhr.onerror = function (e) {
+    console.error(xhr.statusText);
+  };
+
+  xhr.send();
+
+  return stations;
 }
 
 function locationSuccess(pos) {
+  trains = [];
 
+  console.log('Get pos stations');
+
+  var stationsPos  = getColsestStations(pos.coords.latitude, pos.coords.longitude);
+
+  console.log('Get home stations');
+
+  var stationsHome = getColsestStations(localStorage.getItem('home_lat'), localStorage.getItem('home_lng'));
+  stationsPos.forEach(function(stationPos, i, arrPos) {
+    stationsHome.forEach(function(stationHome, j, arrHome) {
+      getSheduleData(stationPos, stationHome);
+    });
+  });
+  trains.sort(function(a, b) {
+    return a.KEY_TRAIN_LINE.localeCompare(b.KEY_TRAIN_LINE) || a.KEY_STATION_DISTANCE - b.KEY_STATION_DISTANCE || a.KEY_HOME_DISTANCE - b.KEY_HOME_DISTANCE;
+  });
+  
+  var trainLine = "";
+  trains = trains.filter(function(train) {
+    var isUnic = train.KEY_TRAIN_LINE !=  trainLine;
+    trainLine = train.KEY_TRAIN_LINE;
+    return isUnic;
+  });
+
+  trains.sort(function(a, b) {
+    return a.KEY_EXIT_TIME - b.KEY_EXIT_TIME;
+  });
+
+  trains.forEach(function(train, i, arr) {
+    train.KEY_TRAIN_NUMBER = i;
+  });
+  
+  
+  console.log('Train' + JSON.stringify(trains));
+
+  Pebble.sendAppMessage({
+    'KEY_TRAIN_COUNT': trains.length
+  }, sentSuccessfully, sentUnsuccessfully);
 }
 
 function locationError(err) {
@@ -72,7 +148,6 @@ function locationError(err) {
 }
 
 function getShedule() {
-  sendSheduleData();
 
   navigator.geolocation.getCurrentPosition(
     locationSuccess,
@@ -88,8 +163,12 @@ Pebble.addEventListener('appmessage',
     switch (e.payload.KEY_COMMAND) {
 
       case "send_next_train":
+        console.log ("send_next_train ");
+        console.log ("trains.length " + trains.length);
         if (trains.length > 0) {
+          console.log ("send");
           Pebble.sendAppMessage(trains.shift(), sentSuccessfully, sentUnsuccessfully);
+          console.log ("sent");
         } else {
           Pebble.sendAppMessage({
             'KEY_SHEDULE_SENT': 1,
@@ -108,9 +187,23 @@ Pebble.addEventListener('appmessage',
 Pebble.addEventListener('ready', 
   function(e) {
     console.log('PebbleKit JS ready!');
+    timezoneOffset = (new Date()).getTimezoneOffset() * 60;
 
-  // Get the initial weather
     getShedule();
   }
 );
+
+Pebble.addEventListener('showConfiguration', function(e) {
+  Pebble.openURL('http://akosarev.info/pebble/tw/config/index.html');
+});
+
+Pebble.addEventListener('webviewclosed', function(e) {
+  // Decode and parse config data as JSON
+  var config_data = JSON.parse(decodeURIComponent(e.response));
+  console.log('Config window returned: ' + e.response);
+
+  localStorage.setItem('home_lat', config_data.lat);
+  localStorage.setItem('home_lng', config_data.lng);
+  
+});
 
