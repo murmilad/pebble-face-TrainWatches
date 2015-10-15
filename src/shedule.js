@@ -14,6 +14,10 @@ var timezoneOffset;
 var stationsHome = [];
 var stationsPos  = [];
 
+var date = new Date();
+var dateUTC = date.getTime() / 1000;
+var xhr;
+
 //This function takes in latitude and longitude of two location and returns the distance between them as the crow flies (in km)
 function calcSearchDistance(lat1, lon1, lat2, lon2) {
   var R = 6371; // km
@@ -28,7 +32,7 @@ function calcSearchDistance(lat1, lon1, lat2, lon2) {
   var d = R * c;
   
   
-  return Math.min(Math.max(Math.floor(d / 10), 1),10);
+  return Math.min(Math.max(Math.floor(d / 10), 1),4);
 }
 
 // Converts numeric degrees to radians
@@ -42,21 +46,22 @@ function getDateUTC (dateString){
   return date.getTime() / 1000 - timezoneOffset;
 }
 
-function getSheduleData(stationPos, stationHome){
-  var date = new Date();
-  var dateUTC = date.getTime() / 1000;
+function getSheduleData(stationPos, stationHome, dateStr){
+  xhr = new XMLHttpRequest();
 
-  var xhr = new XMLHttpRequest();
-
-  xhr.open("GET", "https://api.rasp.yandex.net/v1.0/search/?apikey=e11e0228-1a80-4090-98a9-046137c4fbb0&format=json&lang=ru&from=" + stationPos.KEY_STATION_CODE + "&to=" + stationHome.KEY_STATION_CODE + "&date=" + date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2), false);
-  xhr.withCredentials=true;
+  xhr.open("GET", "https://api.rasp.yandex.net/v1.0/search/?apikey=e11e0228-1a80-4090-98a9-046137c4fbb0&format=json&lang=ru&from=" + stationPos.KEY_STATION_CODE + "&to=" + stationHome.KEY_STATION_CODE + "&date=" + dateStr, false);
+           
   xhr.onload = function (e) {
 
     if (xhr.readyState === 4) {
       if (xhr.status === 200) {
+        console.log('Json b ' +  stationPos.KEY_STATION_TITLE + "to" + stationHome.KEY_STATION_TITLE);
         var sheduleFeed = JSON.parse(decodeURIComponent(xhr.responseText));
+        console.log('Json a ' +  stationPos.KEY_STATION_TITLE + "to" + stationHome.KEY_STATION_TITLE);
         sheduleFeed.threads.forEach(function(train, i, arr) {
+          console.log('Train b ' + train.thread.short_title);
           var exitTime = getDateUTC(train.departure) - stationPos.KEY_STATION_TIME;
+          console.log('Train a ' + train.thread.short_title);
           if (dateUTC < exitTime) {
             console.log('Train ' + train.thread.short_title);
             console.log('Train number' + train.thread.number);
@@ -82,20 +87,16 @@ function getSheduleData(stationPos, stationHome){
     }
   };
 
-  xhr.onerror = function (e) {
-    console.error(xhr.statusText);
-  };
-
   xhr.send();
-  
 }
 
+
 function getColsestStations(lat, lng, distance) {
-  var xhr = new XMLHttpRequest();
   var _stations = [];
 
+  var xhr = new XMLHttpRequest();
+
   xhr.open("GET", "https://api.rasp.yandex.net/v1.0/nearest_stations/?&apikey=e11e0228-1a80-4090-98a9-046137c4fbb0&format=json&lat=" + lat + "&lng=" + lng + "&distance=" + distance + "&lang=ru&transport_types=train", false);
-  xhr.withCredentials=true;
   xhr.onload = function (e) {
 
     if (xhr.readyState === 4) {
@@ -125,11 +126,8 @@ function getColsestStations(lat, lng, distance) {
     }
   };
 
-  xhr.onerror = function (e) {
-    console.error(xhr.statusText);
-  };
-
   xhr.send();
+  xhr.abort();
 
   return _stations;
 }
@@ -152,16 +150,24 @@ function locationSuccess(pos) {
 }
 
 function sortSheduleData(){
+  var dateStr = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
+
   stationsPos.forEach(function(stationPos, i, arrPos) {
     stationsHome.forEach(function(stationHome, j, arrHome) {
-      getSheduleData(stationPos, stationHome);
+      console.log('Get');
+
+      getSheduleData(stationPos, stationHome, dateStr);
     });
   });
-  
+
+  console.log('Find');
+
   trains.sort(function(a, b) {
     return a.KEY_TRAIN_LINE.localeCompare(b.KEY_TRAIN_LINE) || a.KEY_STATION_DISTANCE - b.KEY_STATION_DISTANCE || a.KEY_HOME_DISTANCE - b.KEY_HOME_DISTANCE;
   });
-  
+
+  console.log('Cut');
+
   var trainLine = "";
   trains = trains.filter(function(train) {
     var isUnic = train.KEY_TRAIN_LINE !=  trainLine;
@@ -169,16 +175,20 @@ function sortSheduleData(){
     return isUnic;
   });
 
+  console.log('Sort');
+
   trains.sort(function(a, b) {
     return a.KEY_EXIT_TIME - b.KEY_EXIT_TIME;
   });
+
+  console.log('Num');
 
   trains.forEach(function(train, i, arr) {
     train.KEY_TRAIN_NUMBER = i;
   });
   
   
-  console.log('Train' + JSON.stringify(trains));
+  console.log('Train ok');
 
   Pebble.sendAppMessage({
     'KEY_TRAIN_COUNT': trains.length
@@ -239,6 +249,8 @@ Pebble.addEventListener('ready',
   function(e) {
     console.log('PebbleKit JS ready!');
     timezoneOffset = (new Date()).getTimezoneOffset() * 60;
+
+ 
 
     getShedule();
   }

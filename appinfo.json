@@ -19,7 +19,7 @@
         "configurable"
     ],
     "companyName": "murmilad@gmail.com",
-    "longName": "Train Watches",
+    "longName": "My Train (Yandex \u0420\u0430\u0441\u043f\u0438\u0441\u0430\u043d\u0438\u044f)",
     "projectType": "native",
     "resources": {
         "media": [
@@ -35,6 +35,7 @@
             },
             {
                 "file": "images/app_image.png",
+                "menuIcon": true,
                 "name": "IMAGE_APP",
                 "type": "png"
             },
@@ -90,7 +91,6 @@
             },
             {
                 "file": "images/train_1.png",
-                "menuIcon": true,
                 "name": "IMAGE_TRAIN_1",
                 "type": "png"
             },
@@ -113,7 +113,7 @@
         ]
     },
     "sdkVersion": "2",
-    "shortName": "TW",
+    "shortName": "MTrain",
     "uuid": "63e94b3f-1ec1-4dbb-9a4a-450a48683824",
     "versionCode": 1,
     "versionLabel": "1.0",
