@@ -67,6 +67,9 @@ static void main_window_load(Window *window) {
 }
 
 static void main_window_unload(Window *window) {
+    // Load train data
+    train_unload();
+
     // Destroy TextLayer
     text_layer_destroy(s_time_layer);
 

@@ -116,7 +116,7 @@
     "shortName": "MTrain",
     "uuid": "63e94b3f-1ec1-4dbb-9a4a-450a48683824",
     "versionCode": 1,
-    "versionLabel": "1.0",
+    "versionLabel": "1.1",
     "watchapp": {
         "watchface": true
     }
