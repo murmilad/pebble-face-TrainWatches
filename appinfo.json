@@ -24,6 +24,11 @@
     "resources": {
         "media": [
             {
+                "file": "fonts/test.ttf",
+                "name": "FONT_GEORGIA_PEBBLE14",
+                "type": "font"
+            },
+            {
                 "file": "fonts/georgia.ttf",
                 "name": "FONT_GEORGIA12",
                 "type": "font"

@@ -45,6 +45,7 @@ static int16_t s_train_index  = 0;
 static uint16_t s_trains_count = 0;
 static bool s_shedule_received = false;
 static GFont s_timer_font;
+static GFont s_track_font;
 static time_t s_train_time = 0;
 
 static void send_command(char * command) {
@@ -118,9 +119,9 @@ void update_train_minute() {
           static char title_str[350];
 
           if (s_train_index == i) {
-            snprintf(title_str, sizeof(title_str), "%s - %s : %s", s_stations_array[s_shedule_array[i].station_from].title, s_stations_array[s_shedule_array[i].station_to].title,  time_str);
+            snprintf(title_str, sizeof(title_str), "%s %s - %s", time_str, s_stations_array[s_shedule_array[i].station_from].title, s_stations_array[s_shedule_array[i].station_to].title);
           } else {
-            snprintf(title_str, sizeof(title_str), "Следующий: %s - %s : %s", s_stations_array[s_shedule_array[i].station_from].title, s_stations_array[s_shedule_array[i].station_to].title,  time_str);
+            snprintf(title_str, sizeof(title_str), "Следующий: %s %s - %s", time_str, s_stations_array[s_shedule_array[i].station_from].title, s_stations_array[s_shedule_array[i].station_to].title);
           }
   
           text_layer_set_text(s_track_layer, title_str);
@@ -171,6 +172,9 @@ void train_load(Window *window) {
   s_track_layer = text_layer_create(GRect(10, 103, 130, 62));
   text_layer_set_background_color(s_track_layer, GColorBlack);
   text_layer_set_text_color(s_track_layer, GColorClear);
+  s_track_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_GEORGIA_PEBBLE14));
+  text_layer_set_font(s_track_layer, s_track_font);
+
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_track_layer));
   
   s_timer_layer = text_layer_create(GRect(93, 25, 61, 20));
