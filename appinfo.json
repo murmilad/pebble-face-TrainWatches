@@ -107,6 +107,12 @@
             {
                 "characterRegex": "[0-9:. ]",
                 "file": "fonts/BAUHS93.TTF",
+                "name": "FONT_BAUHS17",
+                "type": "font"
+            },
+            {
+                "characterRegex": "[0-9:. ]",
+                "file": "fonts/BAUHS93.TTF",
                 "name": "FONT_BAUHS21",
                 "type": "font"
             }
@@ -116,7 +122,7 @@
     "shortName": "MTrain",
     "uuid": "63e94b3f-1ec1-4dbb-9a4a-450a48683824",
     "versionCode": 1,
-    "versionLabel": "1.1",
+    "versionLabel": "1.2",
     "watchapp": {
         "watchface": true
     }

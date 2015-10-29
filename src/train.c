@@ -27,7 +27,7 @@ typedef struct {
 } Train;
 
 typedef struct {
-  char title[120];
+  char title[110];
   uint8_t number;
 } Station;
 
@@ -39,10 +39,13 @@ static BitmapLayer *s_frame_layer;
 static GBitmap *s_train_bitmap[TRAIN_IMAGES_COUNT];
 
 static TextLayer *s_track_layer;
+static TextLayer *s_timer_layer;
 
 static int16_t s_train_index  = 0;
 static uint16_t s_trains_count = 0;
-static uint8_t s_shedule_received = 0;
+static bool s_shedule_received = false;
+static GFont s_timer_font;
+static time_t s_train_time = 0;
 
 static void send_command(char * command) {
   DictionaryIterator* dictionaryIterator = NULL;
@@ -52,42 +55,78 @@ static void send_command(char * command) {
   app_message_outbox_send ();
 }
 
-void update_train() {
+void update_train_timer() {
+  if (s_train_time != 0) {
+    time_t timer = s_train_time - time(NULL);
+    struct tm *tick_time = localtime(&timer);
+  
+    static char time_str[] = "00:00";
+    strftime(time_str, sizeof("00:00"), "%M:%S", tick_time);
+  
+    text_layer_set_text(s_timer_layer, time_str);
+  } else {
+    text_layer_set_text(s_timer_layer, "");
+  }
+}
+
+
+void update_train_second() {
+  update_train_timer();
+}
+
+void update_train_minute() {
   
   time_t current_time = time(NULL);
   
-  if (s_shedule_received == 1){
+  if (s_shedule_received){
     s_train_index = -1;
     for (uint16_t i = 0; i < s_trains_count; i++){
-      if (current_time < s_shedule_array[i].exit_time){
-        APP_LOG(APP_LOG_LEVEL_INFO, "train time %d", (int) s_shedule_array[i].time);
-        APP_LOG(APP_LOG_LEVEL_INFO, "station dest %d", (int) s_shedule_array[i].station_dest);
-        APP_LOG(APP_LOG_LEVEL_INFO, "current  time %d", (int) current_time);
+      if (current_time < s_shedule_array[i].time){
   
         s_train_index = i;
-        uint32_t time_difference = s_shedule_array[i].exit_time - current_time;
+        int32_t time_difference = s_shedule_array[i].exit_time - current_time;
 
-        APP_LOG(APP_LOG_LEVEL_INFO, "time_difference %d", (int) time_difference);
+          s_train_time = s_shedule_array[i].time;
 
         if (time_difference > 60 * 9) {
+          s_train_time = 0;
+          update_train_timer();
           bitmap_layer_set_bitmap(s_train_layer, s_train_bitmap[9]);
+        } else if (time_difference < 0){
+          s_train_index = i;
+
+          s_train_time = s_shedule_array[i].time;
+
+          bitmap_layer_set_bitmap(s_train_layer, s_train_bitmap[9]);
+          
+          i++;
         } else {
+
           uint8_t index = time_difference / 60;
-          APP_LOG(APP_LOG_LEVEL_INFO, " get image %d", index);
+          s_train_time = 0;
+          update_train_timer();
           bitmap_layer_set_bitmap(s_train_layer, s_train_bitmap[index]);
         }
-        
-        static char time_str[] = "00:00";
-        
-        struct tm *tick_time = localtime(&s_shedule_array[i].time);
-        strftime(time_str, sizeof("00:00"), "%H:%M", tick_time);
 
-        static char title_str[310];
-        snprintf(title_str, sizeof(title_str), "%s - %s : %s", s_stations_array[s_shedule_array[i].station_from].title, s_stations_array[s_shedule_array[i].station_to].title,  time_str);
+        if (i < s_trains_count) {
 
-        APP_LOG(APP_LOG_LEVEL_INFO, " get image %s", title_str);
-        
-        text_layer_set_text(s_track_layer, title_str);
+          static char time_str[] = "00:00";
+
+          struct tm *tick_time = localtime(&s_shedule_array[i].time);
+          strftime(time_str, sizeof("00:00"), "%H:%M", tick_time);
+
+          static char title_str[350];
+
+          if (s_train_index == i) {
+            snprintf(title_str, sizeof(title_str), "%s - %s : %s", s_stations_array[s_shedule_array[i].station_from].title, s_stations_array[s_shedule_array[i].station_to].title,  time_str);
+          } else {
+            snprintf(title_str, sizeof(title_str), "Следующий: %s - %s : %s", s_stations_array[s_shedule_array[i].station_from].title, s_stations_array[s_shedule_array[i].station_to].title,  time_str);
+          }
+  
+          text_layer_set_text(s_track_layer, title_str);
+        } else {
+          text_layer_set_text(s_track_layer, "Следующих поездов больше нет");
+        }
 
         break;
       }
@@ -119,6 +158,7 @@ void train_load(Window *window) {
   s_train_bitmap[1] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_TRAIN_8);
   s_train_bitmap[0] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_TRAIN_9);
 
+
   s_train_layer = bitmap_layer_create(GRect(83, 25, 61, 61));
   bitmap_layer_set_bitmap(s_train_layer, s_train_bitmap[10]);
   layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(s_train_layer));
@@ -127,10 +167,20 @@ void train_load(Window *window) {
   bitmap_layer_set_bitmap(s_frame_layer, gbitmap_create_with_resource(RESOURCE_ID_IMAGE_TRAIN_FRAME));
   layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(s_frame_layer));
 
+
   s_track_layer = text_layer_create(GRect(10, 103, 130, 62));
   text_layer_set_background_color(s_track_layer, GColorBlack);
   text_layer_set_text_color(s_track_layer, GColorClear);
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_track_layer));
+  
+  s_timer_layer = text_layer_create(GRect(93, 25, 61, 20));
+  text_layer_set_background_color(s_timer_layer, GColorClear );
+  text_layer_set_text_color(s_timer_layer, GColorClear);
+  s_timer_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_BAUHS17));
+  text_layer_set_font(s_timer_layer, s_timer_font);
+
+  layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_timer_layer));
+
 }
 
 void train_unload(){
@@ -142,14 +192,13 @@ void train_unload(){
     bitmap_layer_destroy(s_frame_layer);
     free(s_shedule_array);
     text_layer_destroy(s_track_layer);
+    text_layer_destroy(s_timer_layer);
 
 }
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
   // Read first item
-  APP_LOG(APP_LOG_LEVEL_INFO, "read");
   Tuple *t = dict_read_first(iterator);
-  APP_LOG(APP_LOG_LEVEL_INFO, "readed");
 
   Train train;
   bool is_train = false;
@@ -161,28 +210,25 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   // For all items
   while(t != NULL) {
     // Which key was received?
-     APP_LOG(APP_LOG_LEVEL_INFO, "Key %d",(int) t->key);
     switch(t->key) {
       case KEY_STATION_COUNT:
-        APP_LOG(APP_LOG_LEVEL_INFO, "Station count %d", t->value->uint8);
         free(s_stations_array);
         s_stations_array = (Station*)malloc(t->value->uint8 * sizeof(Station));
         send_command("send_next_station");
         break;
       case KEY_STATION_TITLE:
-        APP_LOG(APP_LOG_LEVEL_INFO, "Station title %s", t->value->cstring);
         is_station = true;
         snprintf(station.title, sizeof(station.title), "%s", t->value->cstring);
         break;
       case KEY_STATION_NUMBER:
-        APP_LOG(APP_LOG_LEVEL_INFO, "Station number %d", t->value->uint8);
         station.number = t->value->uint8;
         break;
       case KEY_TRAIN_COUNT:
-        APP_LOG(APP_LOG_LEVEL_INFO, "Trains count %d", t->value->uint16);
 
+        s_train_time = 0;
+        update_train_timer();
         s_train_index = -1;
-        s_shedule_received = 0;
+        s_shedule_received = false;
         bitmap_layer_set_bitmap(s_train_layer, s_train_bitmap[10]);
         s_trains_count = t->value->uint16;
 
@@ -192,17 +238,14 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         send_command("send_next_train");
         break;
       case KEY_TRAIN_STATION_FROM:
-        APP_LOG(APP_LOG_LEVEL_INFO, "Trains from %d", t->value->uint8);
         train.station_from = t->value->uint8;
 
         break;
       case KEY_TRAIN_STATION_TO:
-        APP_LOG(APP_LOG_LEVEL_INFO, "Trains to %d", t->value->uint8);
         train.station_to = t->value->uint8;
 
         break;
       case KEY_TRAIN_TIME:
-        APP_LOG(APP_LOG_LEVEL_INFO, "tim %d", (int) t->value->uint32);
 
         is_train = true;
 
@@ -210,32 +253,27 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 
         break;
       case KEY_EXIT_TIME:
-        APP_LOG(APP_LOG_LEVEL_INFO, "exit %d", (int) t->value->uint32);
 
         train.exit_time = (time_t) t->value->uint32;
 
         break;
       case KEY_STATION_DISTANCE:
-        APP_LOG(APP_LOG_LEVEL_INFO, "dest %d", (int) t->value->uint16);
 
         train.station_dest = t->value->uint16;
 
         break;
       case KEY_TRAIN_NUMBER:
-        APP_LOG(APP_LOG_LEVEL_INFO, "dest %d", (int) t->value->uint16);
 
         train_number = t->value->uint8;
 
         break;
       case KEY_SHEDULE_SENT:
-        APP_LOG(APP_LOG_LEVEL_INFO, "sent %d", (int) t->value->uint8);
 
-        s_shedule_received = (uint8_t)t->value->uint8;
-        update_train();
+        s_shedule_received = true;
+        update_train_minute();
 
         break;
       default:
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Key %d not recognized!", (int)t->key);
         break;
     }
 

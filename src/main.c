@@ -32,8 +32,13 @@ static void update_time() {
 
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  update_time();
-  update_train();
+      if (units_changed & MINUTE_UNIT) {
+        update_time();
+        update_train_minute();
+      }
+      if (units_changed & SECOND_UNIT) {
+        update_train_second();
+      }
 }
 
 static void main_window_load(Window *window) {
@@ -94,7 +99,7 @@ static void init() {
   window_stack_push(s_main_window, true);
 
   // Register with TickTimerService
-  tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+  tick_timer_service_subscribe(MINUTE_UNIT | SECOND_UNIT, tick_handler);
 
   // Init train
   train_init();

@@ -63,15 +63,12 @@ function getSheduleData(stationPos, stationHome, dateStr){
           var exitTime = getDateUTC(train.departure) - stationPos.KEY_STATION_TIME;
           console.log('Train a ' + train.thread.short_title);
           if (dateUTC < exitTime) {
-            console.log('Train ' + train.thread.short_title);
-            console.log('Train number' + train.thread.number);
-            console.log('Train number' + train.thread.uid);
 
             trains.push({
               'KEY_TRAIN_TITLE': train.from.title + " - " + train.to.title,
-              'KEY_TRAIN_TIME': getDateUTC(train.departure),
+              'KEY_TRAIN_TIME': (getDateUTC(train.departure)),
               'KEY_TRAIN_LINE': train.thread.number,
-              'KEY_EXIT_TIME' : exitTime,
+              'KEY_EXIT_TIME' : (exitTime),
               'KEY_TRACK_TITLE' : train.thread.short_title,
               'KEY_STATION_DISTANCE': stationPos.KEY_STATION_DISTANCE,
               'KEY_HOME_DISTANCE': stationHome.KEY_STATION_DISTANCE,
@@ -104,14 +101,11 @@ function getColsestStations(lat, lng, distance) {
         console.log("xhr.status === 200");
         var configuration = JSON.parse(decodeURIComponent(xhr.responseText));
         configuration.stations.forEach(function(station, i, arr) {
-          console.log('Station ' + station.title);
-          console.log('Station dest ' + station.distance);
-          console.log('Station time ' + Math.round(station.distance / 5 * 60 * 60));
 
           _stations.push({
             'KEY_STATION_TITLE': station.title,
             'KEY_STATION_DISTANCE': Math.round(station.distance * 1000),
-            'KEY_STATION_TIME': Math.round(station.distance / 5 * 60 * 60),
+            'KEY_STATION_TIME': Math.round(station.distance / 3 * 60 * 60),
             'KEY_STATION_CODE': station.code,
             'KEY_STATION_NUMBER': stations.length,
           });
