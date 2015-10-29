@@ -24,6 +24,21 @@
     "resources": {
         "media": [
             {
+                "file": "fonts/georgia.ttf",
+                "name": "FONT_GEORGIA12",
+                "type": "font"
+            },
+            {
+                "file": "fonts/georgia.ttf",
+                "name": "FONT_GEORGIA17",
+                "type": "font"
+            },
+            {
+                "file": "fonts/georgia.ttf",
+                "name": "FONT_GEORGIA21",
+                "type": "font"
+            },
+            {
                 "file": "images/train_frame.png",
                 "name": "IMAGE_TRAIN_FRAME",
                 "type": "png"
@@ -103,18 +118,6 @@
                 "file": "images/naked_girl__by_sockes-d4tq8xz.png",
                 "name": "IMAGE_GIRL",
                 "type": "png"
-            },
-            {
-                "characterRegex": "[0-9:. ]",
-                "file": "fonts/BAUHS93.TTF",
-                "name": "FONT_BAUHS17",
-                "type": "font"
-            },
-            {
-                "characterRegex": "[0-9:. ]",
-                "file": "fonts/BAUHS93.TTF",
-                "name": "FONT_BAUHS21",
-                "type": "font"
             }
         ]
     },

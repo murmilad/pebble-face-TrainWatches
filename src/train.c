@@ -176,7 +176,7 @@ void train_load(Window *window) {
   s_timer_layer = text_layer_create(GRect(93, 25, 61, 20));
   text_layer_set_background_color(s_timer_layer, GColorClear );
   text_layer_set_text_color(s_timer_layer, GColorClear);
-  s_timer_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_BAUHS17));
+  s_timer_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_GEORGIA17));
   text_layer_set_font(s_timer_layer, s_timer_font);
 
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_timer_layer));
