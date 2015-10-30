@@ -24,6 +24,11 @@
     "resources": {
         "media": [
             {
+                "file": "images/train_11.png",
+                "name": "IMAGE_TRAIN_TIMER",
+                "type": "png"
+            },
+            {
                 "file": "fonts/test.ttf",
                 "name": "FONT_GEORGIA_PEBBLE14",
                 "type": "font"

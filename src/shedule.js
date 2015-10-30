@@ -46,6 +46,13 @@ function getDateUTC (dateString){
   return date.getTime() / 1000 - timezoneOffset;
 }
 
+function getStationByTitle(title) {
+    for (var i = 0; i < stations.length; i++)
+        if (stations[i].KEY_STATION_TITLE === title)
+            return stations[i];
+    return false;
+}
+
 function getSheduleData(stationPos, stationHome, dateStr){
   xhr = new XMLHttpRequest();
 
@@ -63,9 +70,20 @@ function getSheduleData(stationPos, stationHome, dateStr){
           var exitTime = getDateUTC(train.departure) - stationPos.KEY_STATION_TIME;
           console.log('Train a ' + train.thread.short_title);
           if (dateUTC < exitTime) {
+            var station = getStationByTitle(train.thread.short_title);
+            
+            if (!station) {
+              station = {
+                'KEY_STATION_TITLE': train.thread.short_title,
+                'KEY_STATION_NUMBER': stations.length,
+              };
+              stations.push(station);
+            }
+
+            console.log('title ' + station.KEY_STATION_TITLE);
 
             trains.push({
-              'KEY_TRAIN_TITLE': train.from.title + " - " + train.to.title,
+              'KEY_TRAIN_TITLE': station.KEY_STATION_NUMBER,
               'KEY_TRAIN_TIME': (getDateUTC(train.departure)),
               'KEY_TRAIN_LINE': train.thread.number,
               'KEY_EXIT_TIME' : (exitTime),
@@ -76,6 +94,7 @@ function getSheduleData(stationPos, stationHome, dateStr){
               'KEY_TRAIN_STATION_FROM' : stationPos.KEY_STATION_NUMBER,
               'KEY_TRAIN_STATION_TO' : stationHome.KEY_STATION_NUMBER,
             });
+            
           }
         });
       } else {
@@ -103,14 +122,14 @@ function getColsestStations(lat, lng, distance) {
         configuration.stations.forEach(function(station, i, arr) {
 
           _stations.push({
-            'KEY_STATION_TITLE': station.title,
+            'KEY_STATION_TITLE': station.short_title || station.title,
             'KEY_STATION_DISTANCE': Math.round(station.distance * 1000),
             'KEY_STATION_TIME': Math.round(station.distance / 3 * 60 * 60),
             'KEY_STATION_CODE': station.code,
             'KEY_STATION_NUMBER': stations.length,
           });
           stations.push({
-            'KEY_STATION_TITLE': station.title,
+            'KEY_STATION_TITLE': station.short_title || station.title,
             'KEY_STATION_NUMBER': stations.length,
           });
         });
@@ -136,6 +155,8 @@ function locationSuccess(pos) {
   console.log('Get home stations');
   stationsHome = getColsestStations(localStorage.getItem('home_lat'), localStorage.getItem('home_lng'), searchDistance);
 
+  sortSheduleData();
+  
   Pebble.sendAppMessage({
     'KEY_STATION_COUNT': stations.length
   }, sentSuccessfully, sentUnsuccessfully);
@@ -184,9 +205,6 @@ function sortSheduleData(){
   
   console.log('Train ok');
 
-  Pebble.sendAppMessage({
-    'KEY_TRAIN_COUNT': trains.length
-  }, sentSuccessfully, sentUnsuccessfully);
 }
 
 function locationError(err) {
@@ -227,7 +245,9 @@ Pebble.addEventListener('appmessage',
           console.log ("send st");
           Pebble.sendAppMessage(stations.shift(), sentSuccessfully, sentUnsuccessfully);
         } else {
-          sortSheduleData();
+            Pebble.sendAppMessage({
+              'KEY_TRAIN_COUNT': trains.length
+            }, sentSuccessfully, sentUnsuccessfully);
         }
        break;
       

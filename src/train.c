@@ -1,7 +1,7 @@
 #include <pebble.h>
 #include "train.h"
 
-#define TRAIN_IMAGES_COUNT 11  
+#define TRAIN_IMAGES_COUNT 12  
 
 #define KEY_TRAIN_TITLE 0
 #define KEY_TRAIN_TIME 1
@@ -19,6 +19,7 @@
 #define KEY_TRAIN_STATION_TO 13
 
 typedef struct {
+  uint8_t title;
   uint8_t station_from;
   uint8_t station_to;
   time_t time;
@@ -27,7 +28,7 @@ typedef struct {
 } Train;
 
 typedef struct {
-  char title[110];
+  char title[55];
   uint8_t number;
 } Station;
 
@@ -98,7 +99,7 @@ void update_train_minute() {
 
           s_train_time = s_shedule_array[i].time;
 
-          bitmap_layer_set_bitmap(s_train_layer, s_train_bitmap[9]);
+          bitmap_layer_set_bitmap(s_train_layer, s_train_bitmap[11]);
           
           i++;
         } else {
@@ -116,12 +117,12 @@ void update_train_minute() {
           struct tm *tick_time = localtime(&s_shedule_array[i].time);
           strftime(time_str, sizeof("00:00"), "%H:%M", tick_time);
 
-          static char title_str[350];
+          static char title_str[200];
 
           if (s_train_index == i) {
-            snprintf(title_str, sizeof(title_str), "%s %s - %s", time_str, s_stations_array[s_shedule_array[i].station_from].title, s_stations_array[s_shedule_array[i].station_to].title);
+            snprintf(title_str, sizeof(title_str), "%s (%s) %s - %s", time_str, s_stations_array[s_shedule_array[i].title].title, s_stations_array[s_shedule_array[i].station_from].title, s_stations_array[s_shedule_array[i].station_to].title);
           } else {
-            snprintf(title_str, sizeof(title_str), "Следующий: %s %s - %s", time_str, s_stations_array[s_shedule_array[i].station_from].title, s_stations_array[s_shedule_array[i].station_to].title);
+            snprintf(title_str, sizeof(title_str), "Следующий: %s (%s) %s - %s", time_str, s_stations_array[s_shedule_array[i].title].title, s_stations_array[s_shedule_array[i].station_from].title, s_stations_array[s_shedule_array[i].station_to].title);
           }
   
           text_layer_set_text(s_track_layer, title_str);
@@ -134,6 +135,7 @@ void update_train_minute() {
     }
     if (s_train_index < 0) {
         text_layer_set_text(s_track_layer, "На сегодня поездов больше нет");
+        bitmap_layer_set_bitmap(s_train_layer, s_train_bitmap[9]);
     }
   
     if(current_time % (60 * 60 * 24) == 0) {
@@ -146,6 +148,7 @@ void update_train_minute() {
 
 void train_load(Window *window) {
     // Create GBitmap, then set to created BitmapLayer
+  s_train_bitmap[11] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_TRAIN_TIMER);
   s_train_bitmap[10] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_THINK_LOAD);
   
   s_train_bitmap[9] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_TRAIN);
@@ -223,9 +226,16 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       case KEY_STATION_TITLE:
         is_station = true;
         snprintf(station.title, sizeof(station.title), "%s", t->value->cstring);
+        APP_LOG(APP_LOG_LEVEL_INFO, "Station title : %s", station.title);
+
         break;
       case KEY_STATION_NUMBER:
         station.number = t->value->uint8;
+        APP_LOG(APP_LOG_LEVEL_INFO, "Station number : %d", station.number);
+        break;
+      case KEY_TRAIN_TITLE:
+        train.title = t->value->uint8;
+        APP_LOG(APP_LOG_LEVEL_INFO, "Train title : %d", train.title);
         break;
       case KEY_TRAIN_COUNT:
 
