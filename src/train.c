@@ -117,25 +117,56 @@ void update_train_minute() {
           struct tm *tick_time = localtime(&s_shedule_array[i].time);
           strftime(time_str, sizeof("00:00"), "%H:%M", tick_time);
 
-          static char title_str[200];
+          static char title_str[250];
 
           if (s_train_index == i) {
-            snprintf(title_str, sizeof(title_str), "%s (%s) %s - %s", time_str, s_stations_array[s_shedule_array[i].title].title, s_stations_array[s_shedule_array[i].station_from].title, s_stations_array[s_shedule_array[i].station_to].title);
+            snprintf(title_str, sizeof(title_str), "%s (%s) от %s до %s", 
+                     time_str, 
+                     s_stations_array[s_shedule_array[i].title].title,
+                     s_stations_array[s_shedule_array[i].station_from].title,
+                     s_stations_array[s_shedule_array[i].station_to].title
+            );
           } else {
-            snprintf(title_str, sizeof(title_str), "Следующий: %s (%s) %s - %s", time_str, s_stations_array[s_shedule_array[i].title].title, s_stations_array[s_shedule_array[i].station_from].title, s_stations_array[s_shedule_array[i].station_to].title);
+              static char now_time_str[] = "00:00";
+    
+              struct tm *now_tick_time = localtime(&s_shedule_array[i-1].time);
+              strftime(now_time_str, sizeof("00:00"), "%H:%M", now_tick_time);
+
+              snprintf(title_str, sizeof(title_str), "%s (%s) затем %s от %s до %s",
+                     now_time_str,
+                     s_stations_array[s_shedule_array[i-1].title].title,  
+                     time_str, 
+                     s_stations_array[s_shedule_array[i].station_from].title,
+                     s_stations_array[s_shedule_array[i].station_to].title
+            );
           }
   
           text_layer_set_text(s_track_layer, title_str);
         } else {
-          text_layer_set_text(s_track_layer, "Следующих поездов больше нет");
+          static char title_str[250];
+          static char now_time_str[] = "00:00";
+
+          struct tm *now_tick_time = localtime(&s_shedule_array[i-1].time);
+          strftime(now_time_str, sizeof("00:00"), "%H:%M", now_tick_time);
+
+          snprintf(title_str, sizeof(title_str), "%s (%s) Следующих на сегодня больше нет.",
+                   now_time_str,
+                   s_stations_array[s_shedule_array[i-1].title].title
+          );
+
+          text_layer_set_text(s_track_layer, title_str);
         }
 
         break;
       }
     }
     if (s_train_index < 0) {
+      if (s_trains_count > 0) {
         text_layer_set_text(s_track_layer, "На сегодня поездов больше нет");
-        bitmap_layer_set_bitmap(s_train_layer, s_train_bitmap[9]);
+      } else {
+        text_layer_set_text(s_track_layer, "Поездов не найдено");
+      }
+      bitmap_layer_set_bitmap(s_train_layer, s_train_bitmap[9]);
     }
   
     if(current_time % (60 * 60 * 24) == 0) {
